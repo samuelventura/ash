@@ -1,20 +1,34 @@
 package ash
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
+
+func TestBasicExpressions(t *testing.T) {
+	assert := newAssert(t)
+	engine := newEngine()
+	assert.executeEqual(engine, "1", newEdtNumber("1"))
+	assert.executeEqual(engine, "1ms", newEdtQuantity("1", "ms"))
+}
 
 func TestBasicTree(t *testing.T) {
-	script := `
+	assert := newAssert(t)
+	code := newCode(`
 	tree global:
 		count = 0
 		increment:
 			count++
 		add amount:
 			count += amount
-	`
-	engine := Compile(script)
-	engine.assert_equal("global.count", 0)
-	engine.execute("global.increment")
-	engine.assert_equal("global.count", 1)
-	engine.execute("global.add 2")
-	engine.assert_equal("global.count", 3)
+	`)
+	fmt.Println(code.toString())
+	assert.equal(0, len(code.errors))
+	engine := newEngine()
+	engine.executeCode(code)
+	assert.executeEqual(engine, "global.count", 0)
+	engine.executeString("global.increment")
+	assert.executeEqual(engine, "global.count", 1)
+	engine.executeString("global.add 2")
+	assert.executeEqual(engine, "global.count", 3)
 }

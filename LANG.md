@@ -21,6 +21,7 @@ Very focused and opinionated automation scripting language.
 - Not general purpose
 - High level abstractions
 - Backend/frontend glue
+- Single line expression
 - WASM/JS/GO targets
 - Text data flow
 - Self healing 
