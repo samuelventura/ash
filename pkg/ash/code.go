@@ -5,13 +5,29 @@ import (
 	"unicode"
 )
 
+const (
+	lineEof = iota
+	lineEmpty
+	lineComment
+	lineCode
+)
+
 type lineDo struct {
+	tid    int
 	number int
 	indent int
 	text   string
+	tokens []*tokenDo
+	apply  func(ctx *contextDo)
 }
 
+const (
+	errorIndent = iota
+	errorParse
+)
+
 type errorDo struct {
+	tid    int
 	line   *lineDo
 	column int
 	desc   string
@@ -19,10 +35,8 @@ type errorDo struct {
 
 type codeDo struct {
 	code   string
-	count  int
 	indent int
 	lines  []*lineDo
-	errors []*errorDo
 }
 
 func (do *codeDo) toString() string {
@@ -44,7 +58,6 @@ func newCode(code string) *codeDo {
 	cdo := new(codeDo)
 	cdo.code = code
 	cdo.lines = make([]*lineDo, 0, len(lines))
-	cdo.count = 0
 	cdo.indent = -1
 	for i, line := range lines {
 		first_j := -1
@@ -60,15 +73,20 @@ func newCode(code string) *codeDo {
 			if cdo.indent < 0 || first_j < cdo.indent {
 				cdo.indent = first_j
 			}
-			if first_c != '#' {
-				ldo := new(lineDo)
-				ldo.number = i
-				ldo.indent = first_j
-				ldo.text = line
-				cdo.lines = append(cdo.lines, ldo)
-				cdo.count++
-			}
 		}
+		ldo := new(lineDo)
+		ldo.number = i
+		ldo.indent = first_j
+		ldo.text = line
+		switch first_c {
+		case '#':
+			ldo.tid = lineComment
+		case '\n':
+			ldo.tid = lineEmpty
+		default:
+			ldo.tid = lineCode
+		}
+		cdo.lines = append(cdo.lines, ldo)
 	}
 	//shift identation left
 	if cdo.indent > 0 {
@@ -76,20 +94,6 @@ func newCode(code string) *codeDo {
 			ldo.indent -= cdo.indent
 			ldo.text = ldo.text[cdo.indent:]
 		}
-	}
-	//check identation
-	cdo.errors = make([]*errorDo, 0, len(cdo.lines))
-	current := -1
-	for _, ldo := range cdo.lines {
-		step := ldo.indent - current
-		if step > 1 {
-			edo := new(errorDo)
-			edo.column = ldo.indent
-			edo.line = ldo
-			edo.desc = "invalid indent"
-			cdo.errors = append(cdo.errors, edo)
-		}
-		current = ldo.indent
 	}
 	return cdo
 }

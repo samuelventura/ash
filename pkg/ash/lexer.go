@@ -1,12 +1,12 @@
 package ash
 
 type tokenDo struct {
-	id    int
+	tid   int
 	value string
 }
 
 const (
-	tokenAny = iota
+	tokenEol = iota
 	tokenSpace
 	tokenName
 	tokenQuantity
@@ -20,26 +20,49 @@ const (
 	tokenPlus
 	tokenMinus
 	tokenEqual
+	tokenError
 )
 
-func tokenize(line string, tokenizers ...func(string) *tokenDo) []*tokenDo {
-	pos := 0
-	tokens := make([]*tokenDo, 0, 4)
-	for pos < len(line) {
-		for _, tokenizer := range tokenizers {
-			token := tokenizer(line[pos:])
-			if token != nil {
-				tokens = append(tokens, token)
-				pos += len(token.value)
-				break
-			}
-		}
-	}
-	return tokens
+func defaultTokenizer() func(string) []*tokenDo {
+	return tokenizeJoin(
+		tokenizeSpace,
+		tokenizeName,
+		tokenizeQuantity,
+		tokenizeNumber,
+		tokenizePrefix("++", tokenPlusPlus),
+		tokenizePrefix("--", tokenMinusMinus),
+		tokenizePrefix("+=", tokenPlusEqual),
+		tokenizePrefix("-=", tokenMinusEqual),
+		tokenizePrefix(":", tokenColon),
+		tokenizePrefix(".", tokenDot),
+		tokenizePrefix("+", tokenPlus),
+		tokenizePrefix("-", tokenMinus),
+		tokenizePrefix("=", tokenEqual),
+	)
 }
 
-func tokenizeAny(line string) *tokenDo {
-	return &tokenDo{tokenAny, line}
+func tokenizeJoin(tokenizers ...func(string) *tokenDo) func(string) []*tokenDo {
+	return func(line string) []*tokenDo {
+		pos := 0
+		tokens := make([]*tokenDo, 0, 4)
+		for pos < len(line) {
+			curr := pos
+			for _, tokenizer := range tokenizers {
+				token := tokenizer(line[pos:])
+				if token != nil {
+					tokens = append(tokens, token)
+					pos += len(token.value)
+					break
+				}
+			}
+			if curr == pos {
+				token := &tokenDo{tokenError, line[pos:]}
+				tokens = append(tokens, token)
+				pos = len(line)
+			}
+		}
+		return tokens
+	}
 }
 
 func tokenizePrefix(prefix string, id int) func(line string) *tokenDo {

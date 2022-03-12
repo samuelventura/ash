@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	runeAny = iota
+	runeEol = iota
 	runeSpace
 	runeAlpha
 	runeDigit
@@ -16,7 +16,7 @@ const (
 	runeEqual
 	runePlus
 	runeMinus
-	runeEol
+	runeAny
 )
 
 func runeize(r rune) int {
@@ -48,30 +48,6 @@ type runeDo struct {
 	i  int
 	r  rune
 	id int
-}
-
-type runeIter struct {
-	done func() bool
-	next func() *runeDo
-}
-
-func runeizer(line string) *runeIter {
-	pos := 0
-	runes := []rune(line)
-	iter := new(runeIter)
-	iter.done = func() bool { return pos > len(runes) }
-	iter.next = func() *runeDo {
-		defer func() { pos++ }()
-		if pos < len(runes) {
-			r := runes[pos]
-			return &runeDo{pos, r, runeize(r)}
-		} else if pos == len(runes) {
-			return &runeDo{pos, '\n', runeEol}
-		} else {
-			return nil
-		}
-	}
-	return iter
 }
 
 func scanAll(scanners ...func(string) int) func(string) int {
@@ -115,11 +91,11 @@ func scanPrefix(prefix string) func(string) int {
 }
 
 func scanValid(line string, valid func(int) bool) int {
-	runer := runeizer(line)
-	for !runer.done() {
-		rdo := runer.next()
-		if !valid(rdo.id) {
-			return rdo.i
+	iter := runeIterator(line)
+	for !iter.done() {
+		ido := iter.next()
+		if !valid(ido.id) {
+			return ido.i
 		}
 	}
 	return 0
