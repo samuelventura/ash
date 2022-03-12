@@ -14,10 +14,17 @@ func runeIterator(line string) *runeIter {
 	iter.next = func() *runeDo {
 		defer func() { pos++ }()
 		if pos < runec {
-			r := runes[pos]
-			return &runeDo{pos, r, runeize(r)}
+			rdo := new(runeDo)
+			rdo.i = pos
+			rdo.r = runes[pos]
+			rdo.f = runeFlags(rdo.r)
+			return rdo
 		} else if pos == runec {
-			return &runeDo{pos, '\n', runeEol}
+			rdo := new(runeDo)
+			rdo.i = runec
+			rdo.r = '\n'
+			rdo.f = runeEol
+			return rdo
 		} else {
 			return nil
 		}
@@ -49,24 +56,34 @@ func tokenIterator(tokens []*tokenDo) *tokenIter {
 }
 
 type lineIter struct {
-	done func() bool
-	next func() *lineDo
+	pos    int
+	length int
+	lines  []*lineDo
 }
 
-func lineIterator(code *codeDo) *lineIter {
-	pos := 0
-	iter := new(lineIter)
-	linec := len(code.lines)
-	iter.done = func() bool { return pos > linec }
-	iter.next = func() *lineDo {
-		defer func() { pos++ }()
-		if pos < linec {
-			return code.lines[pos]
-		} else if pos == linec {
-			return &lineDo{tid: lineEof, number: linec}
-		} else {
-			return nil
-		}
+func (iter *lineIter) done() bool {
+	return iter.pos > iter.length
+}
+
+func (iter *lineIter) peek() *lineDo {
+	if iter.pos < iter.length {
+		return iter.lines[iter.pos]
+	} else if iter.pos == iter.length {
+		return &lineDo{tid: lineEof, number: iter.length}
+	} else {
+		return nil
 	}
+}
+
+func (iter *lineIter) pop() *lineDo {
+	defer func() { iter.pos++ }()
+	return iter.peek()
+}
+
+func lineIterator(lines []*lineDo) *lineIter {
+	iter := new(lineIter)
+	iter.pos = 0
+	iter.lines = lines
+	iter.length = len(lines)
 	return iter
 }

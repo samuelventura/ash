@@ -17,29 +17,16 @@ type lineDo struct {
 	number int
 	indent int
 	text   string
-	tokens []*tokenDo
-	apply  func(ctx *contextDo)
+	file   *fileDo
 }
 
-const (
-	errorIndent = iota
-	errorParse
-)
-
-type errorDo struct {
-	tid    int
-	line   *lineDo
-	column int
-	desc   string
+type fileDo struct {
+	name  string    //filename
+	text  string    //original text
+	lines []*lineDo //parsed lines
 }
 
-type codeDo struct {
-	code   string
-	indent int
-	lines  []*lineDo
-}
-
-func (do *codeDo) toString() string {
+func (do *fileDo) toString() string {
 	b := new(strings.Builder)
 	for _, ldo := range do.lines {
 		b.WriteString(ldo.text)
@@ -53,12 +40,13 @@ func (do *codeDo) toString() string {
 //comments must be equally indented as well
 //spaces and tabs count equally as one
 //leave format fixing to the code editor
-func newCode(code string) *codeDo {
-	lines := strings.Split(code, "\n")
-	cdo := new(codeDo)
-	cdo.code = code
-	cdo.lines = make([]*lineDo, 0, len(lines))
-	cdo.indent = -1
+func newFile(name string, text string, fixIndent bool) *fileDo {
+	lines := strings.Split(text, "\n")
+	fdo := new(fileDo)
+	fdo.text = text
+	fdo.name = name
+	indent := -1
+	list := new(listDo)
 	for i, line := range lines {
 		first_j := -1
 		first_c := '\n'
@@ -70,11 +58,12 @@ func newCode(code string) *codeDo {
 			}
 		}
 		if first_j >= 0 {
-			if cdo.indent < 0 || first_j < cdo.indent {
-				cdo.indent = first_j
+			if indent < 0 || first_j < indent {
+				indent = first_j
 			}
 		}
 		ldo := new(lineDo)
+		ldo.file = fdo
 		ldo.number = i
 		ldo.indent = first_j
 		ldo.text = line
@@ -86,14 +75,19 @@ func newCode(code string) *codeDo {
 		default:
 			ldo.tid = lineCode
 		}
-		cdo.lines = append(cdo.lines, ldo)
+		list.append(ldo)
 	}
-	//shift identation left
-	if cdo.indent > 0 {
-		for _, ldo := range cdo.lines {
-			ldo.indent -= cdo.indent
-			ldo.text = ldo.text[cdo.indent:]
+	fdo.lines = make([]*lineDo, 0, list.length)
+	list.each(func(value interface{}) {
+		line := value.(*lineDo)
+		fdo.lines = append(fdo.lines, line)
+	})
+	if fixIndent && indent > 0 {
+		//shift identation left
+		for _, ldo := range fdo.lines {
+			ldo.indent -= indent
+			ldo.text = ldo.text[indent:]
 		}
 	}
-	return cdo
+	return fdo
 }

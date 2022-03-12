@@ -9,9 +9,9 @@ go clean -testcache
 
 case $TEST_PKG in
     all)
-    go test $MOD/pkg/ash -v -run $TEST_SCOPE
+    go test $MOD/pkg/lang -v -run $TEST_SCOPE
     ;;
     ash)
-    go test $MOD/pkg/ash -v -run $TEST_SCOPE
+    go test $MOD/pkg/lang -v -run $TEST_SCOPE
     ;;
 esac

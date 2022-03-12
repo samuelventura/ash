@@ -2,18 +2,18 @@ package ash
 
 func newEngine() *engineDo {
 	do := new(engineDo)
-	do.tokenizer = defaultTokenizer()
+	do.lexer = defaultLexer()
 	return do
 }
 
 type engineDo struct {
-	tokenizer func(string) []*tokenDo
+	lexer func(string) ([]*tokenDo, int)
 }
 
 func (do *engineDo) executeString(code string) interface{} {
-	return do.executeCode(newCode(code))
+	return do.executeCode(newFile("", code, true))
 }
 
-func (do *engineDo) executeCode(code *codeDo) interface{} {
+func (do *engineDo) executeCode(code *fileDo) interface{} {
 	return nil
 }

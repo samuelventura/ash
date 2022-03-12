@@ -19,7 +19,7 @@ const (
 	runeAny
 )
 
-func runeize(r rune) int {
+func runeFlags(r rune) int {
 	switch r {
 	case '.':
 		return runeDot
@@ -45,9 +45,9 @@ func runeize(r rune) int {
 }
 
 type runeDo struct {
-	i  int
-	r  rune
-	id int
+	r rune //rune
+	i int  //index
+	f int  //flags
 }
 
 func scanAll(scanners ...func(string) int) func(string) int {
@@ -80,6 +80,14 @@ func scanSome(scanners ...func(string) int) func(string) int {
 	}
 }
 
+func scanComment(line string) int {
+	if strings.HasPrefix(line, "#") {
+		return len(line)
+	} else {
+		return 0
+	}
+}
+
 func scanPrefix(prefix string) func(string) int {
 	return func(line string) int {
 		if strings.HasPrefix(line, prefix) {
@@ -94,32 +102,32 @@ func scanValid(line string, valid func(int) bool) int {
 	iter := runeIterator(line)
 	for !iter.done() {
 		ido := iter.next()
-		if !valid(ido.id) {
+		if !valid(ido.f) {
 			return ido.i
 		}
 	}
 	return 0
 }
 
-func scanSpace(line string) int {
+func scanSpaces(line string) int {
 	return scanValid(line, func(id int) bool {
 		return id == runeSpace
 	})
 }
 
-func scanAlpha(line string) int {
+func scanAlphas(line string) int {
 	return scanValid(line, func(id int) bool {
 		return id == runeAlpha
 	})
 }
 
-func scanAlphaUnder(line string) int {
+func scanAlphaUnders(line string) int {
 	return scanValid(line, func(id int) bool {
 		return id == runeAlpha || id == runeUnder
 	})
 }
 
-func scanAlphaUnderDigit(line string) int {
+func scanAlphaUnderDigits(line string) int {
 	return scanValid(line, func(id int) bool {
 		return id == runeAlpha || id == runeUnder || id == runeDigit
 	})
