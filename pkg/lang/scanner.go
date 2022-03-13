@@ -35,7 +35,7 @@ func runeFlags(r rune) int {
 		if unicode.IsDigit(r) {
 			return runeDigit
 		} else if unicode.IsLetter(r) {
-			return runeDigit
+			return runeAlpha
 		} else if unicode.IsSpace(r) {
 			return runeSpace
 		} else {
@@ -99,14 +99,15 @@ func scanPrefix(prefix string) func(string) int {
 }
 
 func scanValid(line string, valid func(int) bool) int {
-	iter := runeIterator(line)
-	for !iter.done() {
-		ido := iter.next()
-		if !valid(ido.f) {
-			return ido.i
+	pos := 0
+	for _, r := range line {
+		f := runeFlags(r)
+		if !valid(f) {
+			break
 		}
+		pos++
 	}
-	return 0
+	return pos
 }
 
 func scanSpaces(line string) int {

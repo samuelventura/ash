@@ -6,10 +6,9 @@ type tokenDo struct {
 }
 
 const (
-	tokenEol = iota
-	tokenSpace
+	tokenSpace = iota
+	tokenComment
 	tokenName
-	tokenQuantity
 	tokenNumber
 	tokenPlusPlus
 	tokenMinusMinus
@@ -20,15 +19,13 @@ const (
 	tokenPlus
 	tokenMinus
 	tokenEqual
-	tokenComment
 )
 
-func defaultLexer() func(string) ([]*tokenDo, int) {
+func buildLexer() func(string) ([]*tokenDo, int) {
 	return lexJoin(
 		lexComment,
 		lexSpace,
 		lexName,
-		lexQuantity,
 		lexNumber,
 		lexPrefix("++", tokenPlusPlus),
 		lexPrefix("--", tokenMinusMinus),
@@ -100,13 +97,6 @@ func lexSpace(line string) *tokenDo {
 func lexName(line string) *tokenDo {
 	return lexScanner(line, tokenName, scanSome(
 		scanAlphaUnders, scanAlphaUnderDigits))
-}
-
-func lexQuantity(line string) *tokenDo {
-	return lexScanner(line, tokenQuantity, scanAll(
-		scanSome(scanDigits, scanAll(scanPrefix("."), scanDigits)),
-		scanAlphas,
-	))
 }
 
 func lexNumber(line string) *tokenDo {

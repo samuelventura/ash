@@ -1,10 +1,8 @@
 package ash
 
-type contextDo struct {
-	parent *contextDo
-	named  map[string]interface{}
-	last   interface{}
-}
+import (
+	"strings"
+)
 
 type clauseDo struct {
 	oper   string
@@ -43,9 +41,13 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			return nil, edo
 		}
 		line := ldo.text[ldo.indent:]
+		//trim trailing spaces
+		line = strings.TrimSpace(line)
 		tokens, pos := lexer(line)
 		//incomplete lexing
-		if pos != len(line) {
+		invalid := pos != len(line)
+		invalid = invalid || len(tokens) == 0
+		if invalid {
 			edo := new(errorDo)
 			edo.tid = errorParse
 			edo.row = ldo.number
@@ -53,6 +55,18 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			edo.desc = "invalid token"
 			return nil, edo
 		}
+		//trim trailing tokens
+		pos = len(tokens)
+		for pos > 0 {
+			token := tokens[pos-1]
+			valid := token.tid != tokenSpace
+			valid = valid && token.tid != tokenComment
+			if valid {
+				break
+			}
+			pos--
+		}
+		tokens = tokens[:pos]
 		clause := parser(tokens)
 		//no clause found
 		if clause == nil {
@@ -116,37 +130,81 @@ func hasPrefix(tokens []*tokenDo, tids []int) bool {
 	return true
 }
 
-func scanOne(tid int) func([]*tokenDo) int {
+func peekOr(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
 	return func(tokens []*tokenDo) int {
-		if hasPrefix(tokens, []int{tid}) {
-			return 1
+		for _, peeker := range peekers {
+			size := peeker(tokens)
+			if size > 0 {
+				return size
+			}
 		}
 		return 0
 	}
 }
 
-// func scanNumber(tokens []*tokenDo) int {
-// 	return scanOne(tokenNumber)(tokens)
-// }
+func peekAnd(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
+	return func(tokens []*tokenDo) int {
+		pos := 0
+		for _, peeker := range peekers {
+			size := peeker(tokens[pos:])
+			if size > 0 {
+				pos += size
+				continue
+			}
+			return 0
+		}
+		return pos
+	}
+}
 
-// func scanQuantity(tokens []*tokenDo) int {
-// 	return scanOne(tokenQuantity)(tokens)
-// }
+func peekTids(tids ...int) func([]*tokenDo) int {
+	return func(tokens []*tokenDo) int {
+		if hasPrefix(tokens, tids) {
+			return len(tids)
+		}
+		return 0
+	}
+}
 
-// func parseLiteral(tokens []*tokenDo) func(ctx *contextDo) {
+func parseJoin(parsers ...func([]*tokenDo) *clauseDo) func([]*tokenDo) *clauseDo {
+	return func(tokens []*tokenDo) *clauseDo {
+		for _, parser := range parsers {
+			clause := parser(tokens)
+			if clause != nil {
+				return clause
+			}
+		}
+		return nil
+	}
+}
 
-// }
+func peek(tokens []*tokenDo, peeker func([]*tokenDo) int) bool {
+	return peeker(tokens) == len(tokens)
+}
 
-// func parseReference(tokens []*tokenDo) func(ctx *contextDo) {
-
-// }
-
-func parseJoin(parsers ...func(tokens []*tokenDo) *clauseDo) *clauseDo {
-
+func parserQuantity(tokens []*tokenDo) *clauseDo {
+	if peek(tokens, peekTids(tokenNumber, tokenName)) {
+		cdo := new(clauseDo)
+		cdo.oper = "lq"
+		cdo.args = []string{tokens[0].text, tokens[1].text}
+		return cdo
+	}
 	return nil
 }
 
-func parseExpression(tokens []*tokenDo) *clauseDo {
-
+func parserNumber(tokens []*tokenDo) *clauseDo {
+	if peek(tokens, peekTids(tokenNumber)) {
+		cdo := new(clauseDo)
+		cdo.oper = "ln"
+		cdo.args = []string{tokens[0].text}
+		return cdo
+	}
 	return nil
+}
+
+func buildParser() func(tokens []*tokenDo) *clauseDo {
+	return parseJoin(
+		parserQuantity,
+		parserNumber,
+	)
 }

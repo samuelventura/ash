@@ -5,7 +5,7 @@ import (
 )
 
 type listDo struct {
-	list   *list.List
+	list   list.List
 	length int
 }
 
