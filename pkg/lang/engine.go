@@ -15,6 +15,8 @@ type engineDo struct {
 func newEngine() *engineDo {
 	do := new(engineDo)
 	do.context = new(contextDo)
+	do.context.parent = nil
+	do.context.named = make(map[string]interface{})
 	do.parser = buildParser()
 	do.lexer = buildLexer()
 	return do
@@ -29,17 +31,9 @@ func (do *engineDo) executeCode(cdo *fileDo) interface{} {
 	if err != nil {
 		panic(err)
 	}
+	do.context.last = nil
 	for _, clause := range clauses {
-		execute(clause, do.context)
+		do.context.last = clause.exec(do.context)
 	}
 	return do.context.last
-}
-
-func execute(cdo *clauseDo, ctx *contextDo) {
-	switch cdo.oper {
-	case "ln":
-		ctx.last = newDtNumber(cdo.args...)
-	case "lq":
-		ctx.last = newDtQuantity(cdo.args...)
-	}
 }

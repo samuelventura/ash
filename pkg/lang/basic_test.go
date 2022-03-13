@@ -4,13 +4,29 @@ import (
 	"testing"
 )
 
+func TestNonCodeLinesAreIgnored(t *testing.T) {
+	assert := newAssert(t)
+	engine := newEngine()
+	assert.executeEqual(engine, "", nil)
+	assert.executeEqual(engine, "#", nil)
+	assert.executeEqual(engine, "\n#", nil)
+	assert.executeEqual(engine, "12\t#\t\n\t#\t", newDtNumber("12"))
+}
+
+func TestLastValueIsReset(t *testing.T) {
+	assert := newAssert(t)
+	engine := newEngine()
+	assert.executeEqual(engine, "12", newDtNumber("12"))
+	assert.executeEqual(engine, "", nil)
+}
+
 func TestBasicExpressions(t *testing.T) {
 	assert := newAssert(t)
 	engine := newEngine()
-	// assert.executeEqual(engine, "", nil)
-	// assert.executeEqual(engine, "#", nil)
 	assert.executeEqual(engine, "12", newDtNumber("12"))
 	assert.executeEqual(engine, "12ms", newDtQuantity("12", "ms"))
+	// assert.executeEqual(engine, "a=12", newDtNumber("12"))
+	// assert.executeEqual(engine, "a", newDtNumber("12"))
 }
 
 // func TestBasicAssigments(t *testing.T) {

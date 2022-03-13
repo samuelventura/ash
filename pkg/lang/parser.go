@@ -5,10 +5,11 @@ import (
 )
 
 type clauseDo struct {
-	oper   string
-	args   []string
-	body   []*clauseDo
 	bodied bool
+	line   *lineDo
+	body   []*clauseDo
+	tag    interface{}
+	exec   func(ctx *contextDo) interface{}
 }
 
 func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), parser func([]*tokenDo) *clauseDo) ([]*clauseDo, error) {
@@ -77,6 +78,7 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			edo.desc = "invalid clause"
 			return nil, edo
 		}
+		clause.line = ldo
 		if clause.bodied {
 			nlist := new(listDo)
 			for !iter.done() {
@@ -185,8 +187,10 @@ func peek(tokens []*tokenDo, peeker func([]*tokenDo) int) bool {
 func parserQuantity(tokens []*tokenDo) *clauseDo {
 	if peek(tokens, peekTids(tokenNumber, tokenName)) {
 		cdo := new(clauseDo)
-		cdo.oper = "lq"
-		cdo.args = []string{tokens[0].text, tokens[1].text}
+		cdo.tag = newDtQuantity(tokens[0].text, tokens[1].text)
+		cdo.exec = func(ctx *contextDo) interface{} {
+			return cdo.tag.(*dtQuantity)
+		}
 		return cdo
 	}
 	return nil
@@ -195,8 +199,10 @@ func parserQuantity(tokens []*tokenDo) *clauseDo {
 func parserNumber(tokens []*tokenDo) *clauseDo {
 	if peek(tokens, peekTids(tokenNumber)) {
 		cdo := new(clauseDo)
-		cdo.oper = "ln"
-		cdo.args = []string{tokens[0].text}
+		cdo.tag = newDtNumber(tokens[0].text)
+		cdo.exec = func(ctx *contextDo) interface{} {
+			return cdo.tag.(*dtNumber)
+		}
 		return cdo
 	}
 	return nil

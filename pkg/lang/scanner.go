@@ -44,12 +44,6 @@ func runeFlags(r rune) int {
 	}
 }
 
-type runeDo struct {
-	r rune //rune
-	i int  //index
-	f int  //flags
-}
-
 func scanAll(scanners ...func(string) int) func(string) int {
 	return func(line string) int {
 		pos := 0
@@ -113,12 +107,6 @@ func scanValid(line string, valid func(int) bool) int {
 func scanSpaces(line string) int {
 	return scanValid(line, func(id int) bool {
 		return id == runeSpace
-	})
-}
-
-func scanAlphas(line string) int {
-	return scanValid(line, func(id int) bool {
-		return id == runeAlpha
 	})
 }
 

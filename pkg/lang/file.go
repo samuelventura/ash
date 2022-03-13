@@ -18,15 +18,6 @@ type fileDo struct {
 	lines []*lineDo //parsed lines
 }
 
-func (do *fileDo) toString() string {
-	b := new(strings.Builder)
-	for _, ldo := range do.lines {
-		b.WriteString(ldo.text)
-		b.WriteRune('\n')
-	}
-	return b.String()
-}
-
 //code indent analyzer removes common prefix
 //for testing purposes, strict otherwise
 //comments must be equally indented as well

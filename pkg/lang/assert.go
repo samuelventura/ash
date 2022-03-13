@@ -16,10 +16,6 @@ type assertDo struct {
 	t *testing.T
 }
 
-func (do *assertDo) equal(expected interface{}, value interface{}) {
-	assert.Equal(do.t, expected, value)
-}
-
 func (do *assertDo) executeEqual(engine *engineDo, code string, expected interface{}) {
 	value := engine.executeString(code)
 	assert.Equal(do.t, expected, value)
