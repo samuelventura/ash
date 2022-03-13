@@ -35,3 +35,8 @@ func newDtQuantity(args ...string) *dtQuantity {
 	edt.unit = args[1]
 	return edt
 }
+
+type clAssigment struct {
+	names      []string
+	expression *clauseDo
+}

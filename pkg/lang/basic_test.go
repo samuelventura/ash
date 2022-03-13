@@ -35,8 +35,8 @@ func TestBasicExpressions(t *testing.T) {
 	engine := newEngine()
 	assert.executeEqual(engine, "12", newDtNumber("12"))
 	assert.executeEqual(engine, "12ms", newDtQuantity("12", "ms"))
-	// assert.executeEqual(engine, "a=12", newDtNumber("12"))
-	// assert.executeEqual(engine, "a", newDtNumber("12"))
+	assert.executeEqual(engine, "a=12", newDtNumber("12"))
+	assert.executeEqual(engine, "a", newDtNumber("12"))
 }
 
 // func TestBasicAssigments(t *testing.T) {

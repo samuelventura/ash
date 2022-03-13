@@ -119,17 +119,40 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 	return clauses, nil
 }
 
-func hasPrefix(tokens []*tokenDo, tids []int) bool {
-	tokenc := len(tokens)
-	for i, tid := range tids {
-		if i >= tokenc {
-			return false
+func peekPrefix(tids ...int) func(tokens []*tokenDo) int {
+	return func(tokens []*tokenDo) int {
+		tokenc := len(tokens)
+		for i, tid := range tids {
+			if i >= tokenc {
+				return 0
+			}
+			if tid != tokens[i].tid {
+				return 0
+			}
 		}
-		if tid != tokens[i].tid {
-			return false
-		}
+		return len(tids)
 	}
-	return true
+}
+
+func peekPrefixEx(tids []int, opts []bool) func(tokens []*tokenDo) int {
+	return func(tokens []*tokenDo) int {
+		off := 0
+		tokenc := len(tokens)
+		for i, tid := range tids {
+			if i-off >= tokenc {
+				return 0
+			}
+			opt := opts[i]
+			if tid != tokens[i-off].tid {
+				if opt {
+					off++
+				} else {
+					return 0
+				}
+			}
+		}
+		return len(tids) - off
+	}
 }
 
 func peekOr(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
@@ -159,12 +182,20 @@ func peekAnd(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
 	}
 }
 
-func peekTids(tids ...int) func([]*tokenDo) int {
+func peekOneMany(one func([]*tokenDo) int, many func([]*tokenDo) int) func(tokens []*tokenDo) int {
 	return func(tokens []*tokenDo) int {
-		if hasPrefix(tokens, tids) {
-			return len(tids)
+		pos := one(tokens)
+		if pos > 0 {
+			for {
+				size := many(tokens[pos:])
+				if size > 0 {
+					pos += size
+					continue
+				}
+				break
+			}
 		}
-		return 0
+		return pos
 	}
 }
 
@@ -184,8 +215,14 @@ func peek(tokens []*tokenDo, peeker func([]*tokenDo) int) bool {
 	return peeker(tokens) == len(tokens)
 }
 
+func peekReference(tokens []*tokenDo) int {
+	one := peekPrefix(tokenName)
+	many := peekPrefix(tokenDot, tokenName)
+	return peekOneMany(one, many)(tokens)
+}
+
 func parserQuantity(tokens []*tokenDo) *clauseDo {
-	if peek(tokens, peekTids(tokenNumber, tokenName)) {
+	if peek(tokens, peekPrefix(tokenNumber, tokenName)) {
 		cdo := new(clauseDo)
 		cdo.tag = newDtQuantity(tokens[0].text, tokens[1].text)
 		cdo.exec = func(ctx *contextDo) interface{} {
@@ -197,7 +234,7 @@ func parserQuantity(tokens []*tokenDo) *clauseDo {
 }
 
 func parserNumber(tokens []*tokenDo) *clauseDo {
-	if peek(tokens, peekTids(tokenNumber)) {
+	if peek(tokens, peekPrefix(tokenNumber)) {
 		cdo := new(clauseDo)
 		cdo.tag = newDtNumber(tokens[0].text)
 		cdo.exec = func(ctx *contextDo) interface{} {
@@ -208,9 +245,68 @@ func parserNumber(tokens []*tokenDo) *clauseDo {
 	return nil
 }
 
-func buildParser() func(tokens []*tokenDo) *clauseDo {
+func parserReference(tokens []*tokenDo) *clauseDo {
+	pos := peekReference(tokens)
+	if pos > 0 {
+		refc := 1 + (pos-1)/2
+		refn := make([]string, refc)
+		for i, _ := range refn {
+			refn[i] = tokens[2*i].text
+		}
+		cdo := new(clauseDo)
+		cdo.tag = refn
+		cdo.exec = func(ctx *contextDo) interface{} {
+			refn := cdo.tag.([]string)
+			return ctx.named[refn[0]]
+		}
+		return cdo
+	}
+	return nil
+}
+
+func parserAssigment(tokens []*tokenDo) *clauseDo {
+	pos := peekReference(tokens)
+	if pos > 0 {
+		refc := 1 + (pos-1)/2
+		tids := []int{tokenSpace, tokenEqual, tokenSpace}
+		opts := []bool{true, false, true}
+		size := peekPrefixEx(tids, opts)(tokens[pos:])
+		if size > 0 {
+			pos += size
+			exp := parserExpression(tokens[pos:])
+			if exp != nil {
+				cl := new(clAssigment)
+				cl.expression = exp
+				cl.names = make([]string, refc)
+				for i, _ := range cl.names {
+					cl.names[i] = tokens[2*i].text
+				}
+				cdo := new(clauseDo)
+				cdo.tag = cl
+				cdo.exec = func(ctx *contextDo) interface{} {
+					cl := cdo.tag.(*clAssigment)
+					val := cl.expression.exec(ctx)
+					ctx.named[cl.names[0]] = val
+					return val
+				}
+				return cdo
+			}
+		}
+	}
+	return nil
+}
+
+func parserExpression(tokens []*tokenDo) *clauseDo {
 	return parseJoin(
+		parserReference,
 		parserQuantity,
 		parserNumber,
+	)(tokens)
+}
+
+func buildParser() func(tokens []*tokenDo) *clauseDo {
+	return parseJoin(
+		parserAssigment,
+		parserExpression,
 	)
 }
