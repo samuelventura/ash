@@ -62,14 +62,12 @@ type lineIter struct {
 }
 
 func (iter *lineIter) done() bool {
-	return iter.pos > iter.length
+	return iter.pos >= iter.length
 }
 
 func (iter *lineIter) peek() *lineDo {
 	if iter.pos < iter.length {
 		return iter.lines[iter.pos]
-	} else if iter.pos == iter.length {
-		return &lineDo{tid: lineEof, number: iter.length}
 	} else {
 		return nil
 	}

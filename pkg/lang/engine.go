@@ -7,13 +7,15 @@ func newEngine() *engineDo {
 }
 
 type engineDo struct {
-	lexer func(string) ([]*tokenDo, int)
+	lexer  func(string) ([]*tokenDo, int)
+	parser func([]*tokenDo) *clauseDo
 }
 
 func (do *engineDo) executeString(code string) interface{} {
 	return do.executeCode(newFile("", code, true))
 }
 
-func (do *engineDo) executeCode(code *fileDo) interface{} {
+func (do *engineDo) executeCode(cdo *fileDo) interface{} {
+
 	return nil
 }

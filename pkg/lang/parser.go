@@ -6,29 +6,20 @@ type contextDo struct {
 	last   interface{}
 }
 
-const (
-	clauseEof = iota
-	clauseFile
-)
-
 type clauseDo struct {
-	tid    int
-	nested bool
+	oper   string
+	args   []string
 	body   []*clauseDo
+	bodied bool
 }
 
 func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), parser func([]*tokenDo) *clauseDo) ([]*clauseDo, error) {
 	//check identation
 	current := indent
 	for _, ldo := range lines {
-		switch ldo.tid {
-		case lineEmpty:
-			continue
-		}
 		step := ldo.indent - current
-		//is not sibling or child
 		//more than one step at a time
-		if ldo.indent < indent || step > 1 {
+		if step > 1 {
 			edo := new(errorDo)
 			edo.tid = errorIndent
 			edo.row = ldo.number
@@ -42,13 +33,7 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 	iter := lineIterator(lines)
 	for !iter.done() {
 		ldo := iter.pop()
-		switch ldo.tid {
-		case lineEmpty:
-			continue
-		case lineEof:
-			continue
-		}
-		//must be at root indent
+		//must be at current indent
 		if ldo.indent != indent {
 			edo := new(errorDo)
 			edo.tid = errorParse
@@ -57,53 +42,58 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			edo.desc = "invalid indent"
 			return nil, edo
 		}
-		switch ldo.tid {
-		case lineCode:
-			line := ldo.text[ldo.indent:]
-			tokens, pos := lexer(line)
-			//incomplete lexing
-			if pos != len(line) {
-				edo := new(errorDo)
-				edo.tid = errorParse
-				edo.row = ldo.number
-				edo.col = ldo.indent + pos
-				edo.desc = "invalid token"
-				return nil, edo
+		line := ldo.text[ldo.indent:]
+		tokens, pos := lexer(line)
+		//incomplete lexing
+		if pos != len(line) {
+			edo := new(errorDo)
+			edo.tid = errorParse
+			edo.row = ldo.number
+			edo.col = ldo.indent + pos
+			edo.desc = "invalid token"
+			return nil, edo
+		}
+		clause := parser(tokens)
+		//no clause found
+		if clause == nil {
+			edo := new(errorDo)
+			edo.tid = errorParse
+			edo.row = ldo.number
+			edo.col = ldo.indent
+			edo.desc = "invalid clause"
+			return nil, edo
+		}
+		if clause.bodied {
+			nlist := new(listDo)
+			for !iter.done() {
+				ndo := iter.peek()
+				if ndo.indent > indent {
+					nlist.append(ndo)
+					iter.pop()
+					continue
+				}
+				break
 			}
-			clause := parser(tokens)
-			//clause not found
-			if clause == nil {
+			if nlist.length == 0 {
 				edo := new(errorDo)
 				edo.tid = errorParse
 				edo.row = ldo.number
 				edo.col = ldo.indent
-				edo.desc = "invalid clause"
+				edo.desc = "empty body"
 				return nil, edo
 			}
-			if clause.nested {
-				nlist := new(listDo)
-				for !iter.done() {
-					ndo := iter.peek()
-					if ndo.indent > indent {
-						nlist.append(ndo)
-						iter.pop()
-						continue
-					}
-					break
-				}
-				nlines := make([]*lineDo, 0, nlist.length)
-				nlist.each(func(value interface{}) {
-					line := value.(*lineDo)
-					nlines = append(nlines, line)
-				})
-				body, err := parse(indent+1, nlines, lexer, parser)
-				if err != nil {
-					return nil, err
-				}
-				clause.body = body
+			nlines := make([]*lineDo, 0, nlist.length)
+			nlist.each(func(value interface{}) {
+				line := value.(*lineDo)
+				nlines = append(nlines, line)
+			})
+			body, err := parse(indent+1, nlines, lexer, parser)
+			if err != nil {
+				return nil, err
 			}
-			list.append(clause)
+			clause.body = body
 		}
+		list.append(clause)
 	}
 	clauses := make([]*clauseDo, 0, list.length)
 	list.each(func(value interface{}) {

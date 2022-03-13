@@ -5,15 +5,7 @@ import (
 	"unicode"
 )
 
-const (
-	lineEof = iota
-	lineEmpty
-	lineComment
-	lineCode
-)
-
 type lineDo struct {
-	tid    int
 	number int
 	indent int
 	text   string
@@ -69,13 +61,12 @@ func newFile(name string, text string, fixIndent bool) *fileDo {
 		ldo.text = line
 		switch first_c {
 		case '#':
-			ldo.tid = lineComment
+			//ignore
 		case '\n':
-			ldo.tid = lineEmpty
+			//ignore
 		default:
-			ldo.tid = lineCode
+			list.append(ldo)
 		}
-		list.append(ldo)
 	}
 	fdo.lines = make([]*lineDo, 0, list.length)
 	list.each(func(value interface{}) {
