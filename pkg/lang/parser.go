@@ -155,33 +155,6 @@ func peekPrefixEx(tids []int, opts []bool) func(tokens []*tokenDo) int {
 	}
 }
 
-func peekOr(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
-	return func(tokens []*tokenDo) int {
-		for _, peeker := range peekers {
-			size := peeker(tokens)
-			if size > 0 {
-				return size
-			}
-		}
-		return 0
-	}
-}
-
-func peekAnd(peekers ...func([]*tokenDo) int) func([]*tokenDo) int {
-	return func(tokens []*tokenDo) int {
-		pos := 0
-		for _, peeker := range peekers {
-			size := peeker(tokens[pos:])
-			if size > 0 {
-				pos += size
-				continue
-			}
-			return 0
-		}
-		return pos
-	}
-}
-
 func peekOneMany(one func([]*tokenDo) int, many func([]*tokenDo) int) func(tokens []*tokenDo) int {
 	return func(tokens []*tokenDo) int {
 		pos := one(tokens)
@@ -250,7 +223,7 @@ func parserReference(tokens []*tokenDo) *clauseDo {
 	if pos > 0 {
 		refc := 1 + (pos-1)/2
 		refn := make([]string, refc)
-		for i, _ := range refn {
+		for i := range refn {
 			refn[i] = tokens[2*i].text
 		}
 		cdo := new(clauseDo)
@@ -278,7 +251,7 @@ func parserAssigment(tokens []*tokenDo) *clauseDo {
 				cl := new(clAssigment)
 				cl.expression = exp
 				cl.names = make([]string, refc)
-				for i, _ := range cl.names {
+				for i := range cl.names {
 					cl.names[i] = tokens[2*i].text
 				}
 				cdo := new(clauseDo)
