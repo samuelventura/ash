@@ -22,6 +22,14 @@ func newEngine() *engineDo {
 	return do
 }
 
+func (do *engineDo) get(name string) interface{} {
+	return do.context.named[name]
+}
+
+func (do *engineDo) set(name string, value interface{}) {
+	do.context.named[name] = value
+}
+
 func (do *engineDo) executeString(code string) interface{} {
 	return do.executeCode(newFile("", code, true))
 }
