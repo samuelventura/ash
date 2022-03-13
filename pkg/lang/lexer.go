@@ -14,6 +14,8 @@ const (
 	tokenMinusMinus
 	tokenPlusEqual
 	tokenMinusEqual
+	tokenOpen
+	tokenClose
 	tokenColon
 	tokenDot
 	tokenPlus
@@ -31,6 +33,8 @@ func buildLexer() func(string) ([]*tokenDo, int) {
 		lexPrefix("--", tokenMinusMinus),
 		lexPrefix("+=", tokenPlusEqual),
 		lexPrefix("-=", tokenMinusEqual),
+		lexPrefix("(", tokenOpen),
+		lexPrefix(")", tokenClose),
 		lexPrefix(":", tokenColon),
 		lexPrefix(".", tokenDot),
 		lexPrefix("+", tokenPlus),
@@ -100,8 +104,9 @@ func lexName(line string) *tokenDo {
 }
 
 func lexNumber(line string) *tokenDo {
-	return lexScanner(line, tokenNumber, scanSome(
-		scanDigits,
-		scanAll(scanPrefix("."), scanDigits),
-	))
+	return lexScanner(line, tokenNumber, scanOne(
+		scanAll(scanPrefix("0b"), scanDigits),
+		scanAll(scanPrefix("0o"), scanDigits),
+		scanAll(scanPrefix("0x"), scanDigits),
+		scanSome(scanDigits, scanAll(scanPrefix("."), scanDigits))))
 }

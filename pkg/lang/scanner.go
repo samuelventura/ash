@@ -59,6 +59,18 @@ func scanAll(scanners ...func(string) int) func(string) int {
 	}
 }
 
+func scanOne(scanners ...func(string) int) func(string) int {
+	return func(line string) int {
+		for _, scanner := range scanners {
+			size := scanner(line)
+			if size > 0 {
+				return size
+			}
+		}
+		return 0
+	}
+}
+
 func scanSome(scanners ...func(string) int) func(string) int {
 	return func(line string) int {
 		pos := 0

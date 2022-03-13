@@ -20,6 +20,16 @@ func TestLastValueIsReset(t *testing.T) {
 	assert.executeEqual(engine, "", nil)
 }
 
+func TestNumberLiterals(t *testing.T) {
+	assert := newAssert(t)
+	engine := newEngine()
+	assert.executeEqual(engine, "0x12", newDtNumber("18"))
+	assert.executeEqual(engine, "0b101", newDtNumber("5"))
+	assert.executeEqual(engine, "0o12", newDtNumber("10"))
+	assert.executeEqual(engine, "12", newDtNumber("12"))
+	assert.executeEqual(engine, "1.2", newDtNumber("1.2"))
+}
+
 func TestBasicExpressions(t *testing.T) {
 	assert := newAssert(t)
 	engine := newEngine()
