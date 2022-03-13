@@ -23,7 +23,7 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			edo.tid = errorIndent
 			edo.row = ldo.number
 			edo.col = ldo.indent
-			edo.desc = "invalid indent"
+			edo.desc = "invalid indent step"
 			return nil, edo
 		}
 		current = ldo.indent
@@ -38,7 +38,7 @@ func parse(indent int, lines []*lineDo, lexer func(string) ([]*tokenDo, int), pa
 			edo.tid = errorParse
 			edo.row = ldo.number
 			edo.col = ldo.indent
-			edo.desc = "invalid indent"
+			edo.desc = "invalid indent level"
 			return nil, edo
 		}
 		line := ldo.text[ldo.indent:]

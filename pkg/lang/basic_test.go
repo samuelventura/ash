@@ -4,13 +4,15 @@ import (
 	"testing"
 )
 
-func TestNonCodeLinesAreIgnored(t *testing.T) {
+func TestNonCodeIsIgnored(t *testing.T) {
 	assert := newAssert(t)
 	engine := newEngine()
 	assert.executeEqual(engine, "", nil)
 	assert.executeEqual(engine, "#", nil)
 	assert.executeEqual(engine, "\n#", nil)
-	assert.executeEqual(engine, "12\t#\t\n\t#\t", newDtNumber("12"))
+	assert.executeEqual(engine, "\t#\t\n\t#\t", nil)
+	//1\n this should return nil in interactive mode
+	//1\n this should return 1 in non-interactive mode
 }
 
 func TestLastValueIsReset(t *testing.T) {
@@ -28,6 +30,15 @@ func TestNumberLiterals(t *testing.T) {
 	assert.executeEqual(engine, "0o12", newDtNumber("10"))
 	assert.executeEqual(engine, "12", newDtNumber("12"))
 	assert.executeEqual(engine, "1.2", newDtNumber("1.2"))
+}
+
+func TestAssigmentSpacing(t *testing.T) {
+	assert := newAssert(t)
+	engine := newEngine()
+	assert.executeEqual(engine, "a=12", newDtNumber("12"))
+	assert.executeEqual(engine, "a \t=12", newDtNumber("12"))
+	assert.executeEqual(engine, "a= \t12", newDtNumber("12"))
+	assert.executeEqual(engine, "a \t= \t12", newDtNumber("12"))
 }
 
 func TestBasicExpressions(t *testing.T) {
