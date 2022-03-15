@@ -55,7 +55,7 @@ func TestValidNames(t *testing.T) {
 	assert.equal(engine.get("a_1"), newDtNumber("12"))
 }
 
-func TestAssigments(t *testing.T) {
+func TestBasicAssigments(t *testing.T) {
 	assert := newAssert(t)
 	engine := newEngine()
 	//spacing
@@ -70,7 +70,7 @@ func TestAssigments(t *testing.T) {
 	assert.equal(engine.get("b"), newDtQuantity("17", "ms"))
 }
 
-func TestExpressions(t *testing.T) {
+func TestBasicExpressions(t *testing.T) {
 	assert := newAssert(t)
 	engine := newEngine()
 	engine.set("a", newDtNumber("1"))
